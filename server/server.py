@@ -35,6 +35,7 @@ def get_client_path(client_no):
 
 #ssh client handler
 def client_handler(client_no):
+    global connected_clients
     _, client_ssh_session, client_ssh_channel = connected_clients[client_no]
     while not client_ssh_channel.closed:
         command = input(f"{get_client_path(client_no)}:#> ").rstrip()
@@ -47,7 +48,7 @@ def client_handler(client_no):
                 try:
                     client_ssh_channel.send("quit")
                     client_ssh_session.close()
-                    connected_clients[i] = None
+                    connected_clients[client_no] = None
                     connected_clients = [c for c in connected_clients if c != None]
                 except:
                     print("[!] Error closing SSH session")

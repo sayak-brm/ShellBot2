@@ -43,6 +43,15 @@ def client_handler():
                     print("[!] Error closing SSH session")
                 print("[*] SSH session closed")
 
+def exit_client_sessions():
+    for client in connected_clients:
+        try:
+            client[2].send("quit")
+            client[1].close()
+            print(f"[*] SSH session closed for {client[0]}")
+        except:
+            print(f"[!] Error closing SSH session for {client[0]}")
+
 clients_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 clients_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #ssh server bind and listen
@@ -57,9 +66,9 @@ print("[*] Listening")
 
 #Keep ssh server active and accept incoming tcp connections
 while True:
-    client_socket, addr = clients_socket.accept()
-    print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
     try:
+        client_socket, addr = clients_socket.accept()
+        print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
         client_ssh_session = paramiko.Transport(client_socket)
         client_ssh_session.add_server_key(server_host_key)
         client_server = ClientServer()
@@ -79,12 +88,14 @@ while True:
             print(f"[*] SSH Client Authenticated with username: {client_server.username}")
             connected_clients.append((client_server.username, client_ssh_session, client_ssh_channel))
             client_handler()
+    except KeyboardInterrupt:
+        print("[*] Exiting Script")
+        exit_client_sessions()
+        print("[*] ALL SSH session closed")
+        sys.exit()
     except Exception as err:
         print("[*] Caught Exception: ", str(err))
         print("[*] Exiting Script")
-        try:
-            client_ssh_session.close()
-        except:
-            print("[!] Error closing SSH session")
-        print("[*] SSH session closed")
+        exit_client_sessions()
+        print("[*] ALL SSH session closed")
         sys.exit(1)

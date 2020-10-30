@@ -47,15 +47,18 @@ def client_handler(client_no):
                 try:
                     client_ssh_channel.send("quit")
                     client_ssh_session.close()
+                    connected_clients[i] = None
+                    connected_clients = [c for c in connected_clients if c != None]
                 except:
                     print("[!] Error closing SSH session")
                 print("[*] SSH session closed")
 
 def exit_client_sessions():
-    for client in connected_clients:
+    for client in connected_clients[:]:
         try:
             client[2].send("quit")
             client[1].close()
+            connected_clients.remove(client)
             print(f"[*] SSH session closed for {client[0]}")
         except:
             print(f"[!] Error closing SSH session for {client[0]}")

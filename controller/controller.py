@@ -11,12 +11,21 @@ server_port = int(sys.argv[2])
 username = sys.argv[3]
 password = sys.argv[4]
 
-def process_commands(client_session):
-    client_session.send(input("$> "))
+client_session = None
+
+def get_client_path(client_no):
+    if client_session == None: return ""
+    client_session.send("getdir " + str(client_no))
+    return client_session.recv(1024).decode('utf-8')
+
+def process_commands():
+    if client_session == None: return
+    client_session.send(input(f"{get_client_path(client_session, 0)}:$> "))
     print(client_session.recv(1024).decode('utf-8'))
 
 #connect to the remote ssh server and recieve commands to be #executed and send back output
 def ssh_command(server_address, server_port, username, password):
+    global client_session
     #instantiate the ssh client
     client = paramiko.SSHClient()
     #optional is using keys instead of password auth
@@ -36,7 +45,7 @@ def ssh_command(server_address, server_port, username, password):
         #wait for command, execute and send result ouput
         while True:
             #use subprocess run with timeout of 30 seconds
-            process_commands(client_session)
+            process_commands()
     client_session.close()
     return
 

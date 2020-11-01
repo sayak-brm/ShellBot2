@@ -16,7 +16,7 @@ contr_password = sys.argv[4]
 server_host_key = paramiko.RSAKey(filename="./ssh_server.key")
 
 connected_clients = []
-running = threading.Event()
+contr_ssh_session = None
 
 class ContrServer(paramiko.ServerInterface):
     def __init__(self):
@@ -77,7 +77,6 @@ def client_handler(client_no):
 
 def contr_handler(contr_ssh_session, contr_ssh_channel):
     while not contr_ssh_channel.closed:
-        if not running.is_set(): raise KeyboardInterrupt
         command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
         if command[0] == "getdir" and len(command[1]):
             try: contr_ssh_channel.send(get_client_path(int(command[1])))
@@ -120,7 +119,7 @@ def client():
     while True:
         try:
             while not select.select([clients_socket], [], [], 1)[0]:
-                if not running.is_set(): raise KeyboardInterrupt
+                pass
             client_socket, addr = clients_socket.accept()
             # print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
             client_ssh_session = paramiko.Transport(client_socket)
@@ -156,6 +155,7 @@ def client():
             sys.exit(1)
 
 def controller():
+    global contr_ssh_session
     contrs_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     contrs_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     #ssh server bind and listen
@@ -171,7 +171,7 @@ def controller():
     while True:
         try:
             while not select.select([contrs_socket], [], [], 1)[0]:
-                if not running.is_set(): raise KeyboardInterrupt
+                pass
             contr_socket, addr = contrs_socket.accept()
             # print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
             contr_ssh_session = paramiko.Transport(contr_socket)
@@ -190,10 +190,13 @@ def controller():
             if contr_ssh_channel == None or not contr_ssh_channel.active:
                 # print("[*] SSH Controller Authentication Failure")
                 contr_ssh_session.close()
+                contr_ssh_session =
             else:
                 # print("[*] SSH Controller Authenticated")
                 try:
                     contr_handler(contr_ssh_session, contr_ssh_channel)
+                contr_ssh_session.close()
+                contr_ssh_session = None
                 except OSError as err:
                     if str(err) != "Socket is closed": raise
                     # print("[*] Controller Disconnected")
@@ -201,6 +204,7 @@ def controller():
             # print("[*] Exiting Script")
             try:
                 contr_ssh_session.close()
+                contr_ssh_session = None
             except:
                 pass
                 # print("[!] Error closing SSH session")
@@ -211,6 +215,7 @@ def controller():
             # print("[*] Exiting Script")
             try:
                 contr_ssh_session.close()
+                contr_ssh_session = None
             except:
                 pass
                 # print("[!] Error closing SSH session")
@@ -218,15 +223,17 @@ def controller():
             sys.exit(1)
 
 if __name__ == "__main__":
-    running.set()
     client_thread = threading.Thread(target = client, daemon = True)
     client_thread.start()
-    contr_thread = threading.Thread(target = controller)
+    contr_thread = threading.Thread(target = controller, daemon = True)
     contr_thread.start()
     while contr_thread.is_alive:
         try:
             time.sleep(.1)
         except KeyboardInterrupt:
-            running.clear()
-            contr_thread.join()
+            try:
+                if contr_ssh_session:
+                    contr_ssh_session.close()
+            except: pass
+            exit_client_sessions()
             sys.exit()

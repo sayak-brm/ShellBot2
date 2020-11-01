@@ -57,7 +57,6 @@ def client_handler(client_no):
     global connected_clients
     _, client_ssh_session, client_ssh_channel = connected_clients[client_no]
     while not client_ssh_channel.closed:
-        if not running.is_set(): raise KeyboardInterrupt
         command = input(f"{get_client_path(client_no)}:#> ").rstrip()
         if len(command):
             if command != "exit":
@@ -190,13 +189,13 @@ def controller():
             if contr_ssh_channel == None or not contr_ssh_channel.active:
                 # print("[*] SSH Controller Authentication Failure")
                 contr_ssh_session.close()
-                contr_ssh_session =
+                contr_ssh_session = None
             else:
                 # print("[*] SSH Controller Authenticated")
                 try:
                     contr_handler(contr_ssh_session, contr_ssh_channel)
-                contr_ssh_session.close()
-                contr_ssh_session = None
+                    contr_ssh_session.close()
+                    contr_ssh_session = None
                 except OSError as err:
                     if str(err) != "Socket is closed": raise
                     # print("[*] Controller Disconnected")

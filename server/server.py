@@ -15,18 +15,6 @@ contr_username = "controller"
 contr_password = sys.argv[4]
 server_host_key = paramiko.RSAKey(filename="./ssh_server.key")
 
-class ContrServer(paramiko.ServerInterface):
-    def __init__(self):
-        self.event = threading.Event()
-    def check_auth_password(self, username, password):
-        if username == contr_username and password == contr_password:
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
-    def check_channel_request(self, kind, chanid):
-        if kind == "session":
-            return paramiko.OPEN_SUCCEEDED
-        return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
-
 #ssh server parameters defined in the class
 class ClientServer(paramiko.ServerInterface):
     def __init__(self):
@@ -123,6 +111,18 @@ class Clients(threading.Thread):
                 pass
                 print(f"[!] Error closing Client SSH session for {client.username}")
 
+class ContrServer(paramiko.ServerInterface):
+    def __init__(self):
+        self.event = threading.Event()
+    def check_auth_password(self, username, password):
+        if username == contr_username and password == contr_password:
+            return paramiko.AUTH_SUCCESSFUL
+        return paramiko.AUTH_FAILED
+    def check_channel_request(self, kind, chanid):
+        if kind == "session":
+            return paramiko.OPEN_SUCCEEDED
+        return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
+
 class Controller(threading.Thread):
     def __init__(self, clients):
         threading.Thread.__init__(self)
@@ -204,7 +204,6 @@ class Controller(threading.Thread):
             print("[!] Error closing Controller SSH session")
         self.ssh_session = None
         print("[*] Controller SSH session closed")
-
 
 if __name__ == "__main__":
     client_thread = Clients()

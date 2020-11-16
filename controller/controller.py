@@ -49,6 +49,7 @@ def process_commands():
             server_session.send(command)
             return
         elif command.split(" ")[0] == "interact":
+            server_session.send(command)
             interact()
         else:
             server_session.send(command)

@@ -125,3 +125,4 @@ dmypy.json
 .pyre/
 
 ssh_server.key*
+test.bat

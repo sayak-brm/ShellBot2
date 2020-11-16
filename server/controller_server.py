@@ -91,10 +91,7 @@ class Controller(threading.Thread):
                 if s == "": s = "No connected Clients"
                 contr_ssh_channel.send(s.strip())
             elif command[0] == "interact" and len(command[1]):
-                if len(self.clients.connected) <= int(command[1]):
-                    contr_ssh_channel.send("clientnotfound")
-                    continue
-                else: self.handle_client(contr_ssh_channel, int(command[1]))
+                self.handle_client(contr_ssh_channel, int(command[1]))
             elif command[0] == "exit":
                 self.exit_controller_session()
                 return
@@ -103,14 +100,36 @@ class Controller(threading.Thread):
             else:
                 contr_ssh_channel.send("Invalid command")
 
+    def get_client_data(self, client, command):
+        if not client.ssh_channel.closed:
+            client.ssh_channel.send(command)
+            return client.ssh_channel.recv(1024).decode('utf-8').strip()
+        return ''
+
     def handle_client(self, contr_ssh_channel, client_no):
+        try:
+            client = self.clients.connected[client_no]
+            contr_ssh_channel.send("clientready")
+        except IndexError:
+            contr_ssh_channel.send("clientnotfound")
+            return
+        status = "clientready"
         while not contr_ssh_channel.closed:
             command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
-            if command[0] == "getdir":
-                try: contr_ssh_channel.send(self.clients.get_client_path(client_no))
-                except IndexError:
-                    contr_ssh_channel.send("clientnotfound")
-                    return
+            if command[0] == "getstatusandpath":
+                path = self.get_client_data(client, "getpath")
+                if path == "":
+                    status = "clientunavailable"
+                contr_ssh_channel.send(status)
+                contr_ssh_channel.send(path)
+            elif command[0] == "ping":
+                pong = self.get_client_data(client, "ping")
+                if pong == "":
+                    status = "clientunavailable"
+                    pong = ""
+                contr_ssh_channel.send(pong)
+            elif command[0] == "exit":
+                return
 
     def exit_controller_session(self):
         try:

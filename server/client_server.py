@@ -85,13 +85,6 @@ class Clients(threading.Thread):
             self.connected.append(client)
             # client_handler(0)
 
-    def get_client_path(self, client_no):
-        client = self.connected[client_no]
-        if not client.ssh_channel.closed:
-            client.ssh_channel.send("getdir")
-            return client.ssh_channel.recv(1024).decode('utf-8').strip()
-        return ''
-
     def exit_client_sessions(self):
         for client in self.connected[:]:
             try:

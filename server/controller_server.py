@@ -113,7 +113,7 @@ class Controller(threading.Thread):
         except IndexError:
             contr_ssh_channel.send("clientnotfound")
             return
-        while not contr_ssh_channel.closed and client.ssh_channel.closed:
+        while not contr_ssh_channel.closed and not client.ssh_channel.closed:
             command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
             # if command[0] == "getstatusandpath":
             #     path = self.get_client_data(client, "getpath")

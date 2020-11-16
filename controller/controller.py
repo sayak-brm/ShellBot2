@@ -23,7 +23,7 @@ def exit_server_session():
 def get_client_status():
     if server_session == None: return ""
     server_session.send("getstatusandpath")
-    return server_session.recv(1024).decode('utf-8'), server_session.recv(1024).decode('utf-8')
+    return server_session.recv(1024).decode('utf-8').split("|")
 
 def interact():
     status = server_session.recv(1024).decode('utf-8')

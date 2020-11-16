@@ -120,8 +120,7 @@ class Controller(threading.Thread):
                 path = self.get_client_data(client, "getpath")
                 if path == "":
                     status = "clientunavailable"
-                contr_ssh_channel.send(status)
-                contr_ssh_channel.send(path)
+                contr_ssh_channel.send(status + "|" + path)
             elif command[0] == "ping":
                 pong = self.get_client_data(client, "ping")
                 if pong == "":
@@ -130,6 +129,8 @@ class Controller(threading.Thread):
                 contr_ssh_channel.send(pong)
             elif command[0] == "exit":
                 return
+            else:
+                contr_ssh_channel.send("Unknown Command")
 
     def exit_controller_session(self):
         try:

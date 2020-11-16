@@ -109,23 +109,21 @@ class Controller(threading.Thread):
     def handle_client(self, contr_ssh_channel, client_no):
         try:
             client = self.clients.connected[client_no]
-            contr_ssh_channel.send("clientready")
+            contr_ssh_channel.send(str(client_no))
         except IndexError:
             contr_ssh_channel.send("clientnotfound")
             return
-        status = "clientready"
-        while not contr_ssh_channel.closed:
+        while not contr_ssh_channel.closed and client.ssh_channel.closed:
             command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
-            if command[0] == "getstatusandpath":
-                path = self.get_client_data(client, "getpath")
-                if path == "":
-                    status = "clientunavailable"
-                contr_ssh_channel.send(status + "|" + path)
-            elif command[0] == "ping":
+            # if command[0] == "getstatusandpath":
+            #     path = self.get_client_data(client, "getpath")
+            #     if path == "":
+            #         status = "clientunavailable"
+            #     contr_ssh_channel.send(status + "|" + path)
+            if command[0] == "ping":
                 pong = self.get_client_data(client, "ping")
                 if pong == "":
-                    status = "clientunavailable"
-                    pong = ""
+                    pong = "Client Disconnected"
                 contr_ssh_channel.send(pong)
             elif command[0] == "exit":
                 return

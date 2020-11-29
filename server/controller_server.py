@@ -123,7 +123,7 @@ class Controller(threading.Thread):
                 contr_ssh_channel.send(pong)
             elif command[0] == "shell":
                 client.ssh_channel.send(command)
-                shell(contr_ssh_channel, client)
+                self.shell(contr_ssh_channel, client)
             elif command[0] == "exit":
                 return
             else:

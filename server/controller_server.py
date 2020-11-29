@@ -98,7 +98,7 @@ class Controller(threading.Thread):
             elif command[0] == "ping":
                 contr_ssh_channel.send("pong")
             else:
-                contr_ssh_channel.send("Invalid command")
+                contr_ssh_channel.send("Command not found")
 
     def get_client_data(self, client, command):
         if not client.ssh_channel.closed:
@@ -113,13 +113,9 @@ class Controller(threading.Thread):
         except IndexError:
             contr_ssh_channel.send("clientnotfound")
             return
+
         while not contr_ssh_channel.closed and not client.ssh_channel.closed:
             command = contr_ssh_channel.recv(1024).decode('utf-8').split(" ")
-            # if command[0] == "getstatusandpath":
-            #     path = self.get_client_data(client, "getpath")
-            #     if path == "":
-            #         status = "clientunavailable"
-            #     contr_ssh_channel.send(status + "|" + path)
             if command[0] == "ping":
                 pong = self.get_client_data(client, "ping")
                 if pong == "":
@@ -128,7 +124,7 @@ class Controller(threading.Thread):
             elif command[0] == "exit":
                 return
             else:
-                contr_ssh_channel.send("Unknown Command")
+                contr_ssh_channel.send("Command not found")
 
     def exit_controller_session(self):
         try:

